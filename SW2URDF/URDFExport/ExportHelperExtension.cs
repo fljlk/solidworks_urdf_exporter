@@ -80,18 +80,30 @@ namespace SW2URDF.URDFExport
 
             Link.isFixedFrame = false;
 
-            //Get link properties from SolidWorks part
-            IMassProperty swMass = swModel.Extension.CreateMassProperty();
-            Link.Inertial.Mass.Value = swMass.Mass;
+            // Get the mass properties of the part with GetMassProperties2 method
+            double[] vMassProp = null;
+            int nStatus = 0;
+            vMassProp = ActiveSWModel.Extension.GetMassProperties2(1, out nStatus, false);
 
-            // returned as double with values [Lxx, Lxy, Lxz, Lyx, Lyy, Lyz, Lzx, Lzy, Lzz]
-            double[] moment = swMass.GetMomentOfInertia(
-                (int)swMassPropertyMoment_e.swMassPropertyMomentAboutCenterOfMass);
-            Link.Inertial.Inertia.SetMomentMatrix(moment);
+            double com_x = vMassProp[0];
+            double com_y = vMassProp[1];
+            double com_z = vMassProp[2];
+            double mass = vMassProp[5];
+            double ixx = vMassProp[6];
+            double iyy = vMassProp[7];
+            double izz = vMassProp[8];
+            double ixy = vMassProp[9];
+            double izx = vMassProp[10];
+            double iyz = vMassProp[11];
 
-            double[] centerOfMass = swMass.CenterOfMass;
+            double[] centerOfMass = { com_x, com_y, com_z };
+            double[] moment = { ixx, ixy, izx, ixy, iyy, iyz, izx, iyz, izz };
+
+            // Assign mass properties to the link
+            Link.Inertial.Mass.value = mass;
             Link.Inertial.Origin.SetXYZ(centerOfMass);
             Link.Inertial.Origin.SetRPY(new double[3] { 0, 0, 0 });
+            Link.Inertial.Inertia.SetMomentMatrix(moment);
 
             // Will this ever not be zeros?
             Link.Visual.Origin.SetXYZ(new double[3] { 0, 0, 0 });
